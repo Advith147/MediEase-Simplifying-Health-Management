@@ -8,698 +8,498 @@ The goal of this project is to develop a device that can show comprehensive deta
 
 
 #include <LiquidCrystal.h>
-
 #include <Wire.h>
-
 #include <RTClib.h>
-
-#include <EEPROM.h>
-
-
-int pushVal = 0;                           
-
-int val;
-
-int val2;
-
-int addr = 0;
-
 
 RTC_DS3231 rtc;
 
-
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;        &nbsp;  &nbsp;   &nbsp;        &nbsp;   &nbsp;           // lcd pins 
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2; // lcd pins
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
+int buzz = 13;
 
-#define getWellsoon 0                                           
+const int buttonPin2 = 9;
 
-#define HELP_SCREEN 1
+const int buttonPin3 = 8;
 
-#define TIME_SCREEN 2
+const int buttonPin1 = A0;
 
+const int buttonPin4 = 7; // the pin that the pushbutton is attached to
 
-//bool pushPressed;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;                          //flag to keep track of push button state 
+int val2 = 0;
 
-int pushpressed = 0;
+int val3 = 0;
 
-const int ledPin =  LED_BUILTIN;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;                  // buzzer and led pin
+int pushVal = 0;
 
-int ledState = LOW;
+int bS1 = 0;     // current state of the button
 
-int Signal = 0;
+int lBS1 = 0;    // previous state of the button
 
+int bS2 = 0;     // current state of the button
 
+int lBS2 = 0;
 
-int buzz = 13;                                      
+int bS3 = 0;     // current state of the button
 
-int push1state, push2state, push3state, stopinState = 0;     
+int lBS3 = 0;
 
-int push1Flag, push2Flag, Push3Flag = false;      &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;           // push button flags 
+int bS4 = 0;     // current state of the button
 
-int push1pin = 9;
+int lBS4 = 0;
 
-int push2pin = 8;
+// configure the pins to the right mode
 
-int push3pin = 7;
+int buzz8amHH = 8; // HH - hours ##Set these for reminder time in 24hr Format
 
-int stopPin = A0;
+int buzz8amMM = 00; // MM - Minute
 
-int screens = 0;    &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;             // screen to show
+int buzz8amSS = 00; // SS - Seconds
 
-int maxScreen = 2;           &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    // screen count
+int buzz2pmHH = 8; // HH - hours
 
-bool isScreenChanged = true;
+int buzz2pmMM = 1; // MM - Minute
 
+int buzz2pmSS = 00; // SS - Seconds
 
-long previousMillis = 0;           
+int buzz8pmHH = 8; // HH - hours
 
-long interval = 500;       &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;               // buzzing interval
+int buzz8pmMM = 2; // MM - Minute
 
-unsigned long currentMillis;
+int buzz8pmSS = 00; // SS - Seconds
 
+int nowHr, nowMin, nowSec;
 
-long previousMillisLCD = 0;    &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   // for LCD screen update
+void gwsMessege() {
 
-long intervalLCD = 2000;    &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;         // Screen cycling interval
-
-unsigned long currentMillisLCD;
-
-
-//   Set Reminder Change Time
-
-int buzz8amHH = 8;          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   //    HH - hours        
-
-int buzz8amMM = 00;       &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      //    MM - Minute
-
-int buzz8amSS = 00;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    //    SS - Seconds
-
-
-int buzz2pmHH = 14;          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   //    HH - hours
-
-int buzz2pmMM = 00;           &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;  //    MM - Minute
-
-int buzz2pmSS = 00;        &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     //    SS - Seconds
-
-
-int buzz8pmHH = 20;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    //    HH - hours
-
-int buzz8pmMM = 00;        &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     //    MM - Minute
-
-int buzz8pmSS = 00;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    //    SS - Seconds
-
-
- 
-
-
-int nowHr, nowMin, nowSec;         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;               // to show current mm,hh,ss
-
-
-// All messeges
-
-void gwsMessege(){            &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      // print get well soon messege
-lcd.clear();
-
-    lcd.setCursor(0, 0);
-
-    lcd.print("Stay Healthy :)");     // Give some cheers
-
-    lcd.setCursor(0, 1);
-
-    lcd.print("Get Well Soon :)");    // wish
-
+  // print get well soon message
+  
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Stay Healthy :)");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("Get Well Soon :)");
+  
 }
 
+void helpScreen() {
 
-void helpScreen() {             &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    // function to display 1st screen in LCD
-
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-
-    lcd.print("Press Buttons");
-
-    lcd.setCursor(0, 1);
-
-    lcd.print("for Reminder...!");
-
-    
-
- }
-
-
-void timeScreen() {                &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp; // function to display Date and time in LCD screen
-
-  DateTime now = rtc.now();            &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    // take rtc time and print in display
-
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-
-    lcd.print("Time:");
-
-    lcd.setCursor(6, 0);
-
-    lcd.print(nowHr = now.hour(), DEC);
-
-    lcd.print(":");
-
-    lcd.print(nowMin = now.minute(), DEC);
-
-    lcd.print(":");
-
-    lcd.print(nowSec = now.second(), DEC);
-
-    lcd.setCursor(0, 1);
-
-    lcd.print("Date: ");
-
-    lcd.print(now.day(), DEC);
-
-    lcd.print("/");
-
-    lcd.print(now.month(), DEC);
-
-    lcd.print("/");
-
-    lcd.print(now.year(), DEC);
-
+  // function to display 1st screen in LCD
+  
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Press Buttons");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("for Reminder...!");
+  
 }
 
+void timeScreen() {
 
-
-void setup() {
-
-
-  Serial.begin(9600);                     &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    // start serial debugging
-
-  if (! rtc.begin()) {                   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      // check if rtc is connected 
-
-    Serial.println("Couldn't find RTC");
-
-    while (1);
-
-  }
-
-  if (rtc.lostPower()) {
-
-    Serial.println("RTC lost power, lets set the time!");
-
-  }
-
-
-//    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));             &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     // uncomment this to set the current time and then comment in next upload when u set the time
-
-  rtc.adjust(DateTime(2019, 1, 10, 7, 59, 30));        &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;           // manual time set
-
-
-  lcd.begin(16, 2);
+  // function to display Date and time in LCD screen
+  
+  DateTime now = rtc.now();
 
   lcd.clear();
 
   lcd.setCursor(0, 0);
-
-  lcd.print("Welcome To");                            &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;             // print a messege at startup
-
+  
+  lcd.print("Time:");
+  
+  lcd.setCursor(6, 0);
+  
+  lcd.print(nowHr = now.hour(), DEC);
+  
+  lcd.print(":");
+  
+  lcd.print(nowMin = now.minute(), DEC );
+  lcd.print(":");
+  
+  lcd.print(nowSec = now.second(), DEC);
+  
   lcd.setCursor(0, 1);
+  
+  lcd.print("Date: ");
+  
+  lcd.print(now.day(), DEC);
+  
+  lcd.print("/");
+  
+  lcd.print(now.month(), DEC);
+  
+  lcd.print("/");
+  
+  lcd.print(now.year(), DEC);
+  
+  delay(500);
+  
+}
 
-  lcd.print("Circuit Digest");
+void setup() {
 
+  Wire.begin();
+  
+  rtc.begin();
+  
+  rtc.adjust(DateTime(2019, 1, 10, 7, 59, 30)); // manual time set
+
+  lcd.begin(16, 2);
+  
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Welcome To Our");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("Medicine Reminder");
+  
   delay(1000);
+  
+  gwsMessege();
+  
+  delay(3000);
+  
+  helpScreen();
+  
+  delay(2000);
 
-  pinMode(push1pin, INPUT);                          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;             // define push button pins type
+  timeScreen();
+  
+  delay(3000);
+  
+  lcd.clear();
 
-  pinMode(push2pin, INPUT);
+  pinMode(buttonPin1, INPUT);
+  
+  pinMode(buttonPin2, INPUT);
+  
+  pinMode(buttonPin3, INPUT);
+  
+  pinMode(buttonPin4, INPUT);
+  
+  pinMode(buzz, OUTPUT);
+  
+  Serial.begin(9600);
+}
 
-  pinMode(push3pin, INPUT);
+void ValSet() {
 
-  pinMode(stopPin, INPUT);
-
-  pinMode(ledPin, OUTPUT);
-
-  delay(200);
-
-  Serial.println(EEPROM.read(addr));
-
-  val2 = EEPROM.read(addr);                          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;  // read previosuly saved value of push button to start from where it was left previously
-
-  switch (val2) {
-
+  Serial.println(pushVal);
+  
+  switch (pushVal) 
+  {
     case 1:
-
-      Serial.println("Set for 1/day");
-
-      push1state = 1;
-
-      push2state = 0;
-
-      push3state = 0;
-
-      pushVal = 1;
-
+    
+      lcd.clear();
+      
+      lcd.setCursor(0, 0);
+      
+      lcd.print("Reminder set ");
+      
+      lcd.setCursor(0, 1);
+      
+      lcd.print("for Once/day !");
+      
       break;
-
+      
     case 2:
+    
+      lcd.clear();
 
-      Serial.println("Set for 2/day");
-
-      push1state = 0;
-
-      push2state = 1;
-
-      push3state = 0;
-
-      pushVal = 2;
-
-
+      lcd.setCursor(0, 0);
+      
+      lcd.print("Reminder set ");
+      
+      lcd.setCursor(0, 1);
+      
+      lcd.print("for Twice/day !");
+      
       break;
-
+      
     case 3:
-
-      Serial.println("Set for 3/day");
-
-      push1state = 0;
-
-      push2state = 0;
-
-      push3state = 1;
-
-      pushVal = 3;
-
-
+    
+      lcd.clear();
+      
+      lcd.setCursor(0, 0);
+      
+      lcd.print("Reminder set ");
+      
+      lcd.setCursor(0, 1);
+      
+      lcd.print("for Thrice/day !");
+      
       break;
-
   }
-
-
-
+  
 }
 
 
 void loop() {
 
-  push1();                                          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      //call to set once/day 
-
-  push2();                                            &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   //call to set twice/day 
-
-  push3();                                          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     //call to set thrice/day 
-
-    if (pushVal == 1) {                          
-
-    at8am();                                        
-  }
-
-  else if (pushVal == 2) {                         &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      // if push button 2 pressed then remind at 8am and 8pm
-
-    at8am();                                            
-
-    at8pm();                                           
-
-  }
-
-  else if (pushVal == 3) {                             &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;  // if push button 3 pressed then remind at 8am and 8pm
-
+  if (pushVal == 1) {
+  
     at8am();
-
-    at2pm();                                            //function to start uzzing at 8mm
-
+    
+  } else if (pushVal == 2) {
+  
+    at8am();
+    
     at8pm();
-
+    
+  } else if (pushVal == 3) {
+  
+    at8am();
+    
+    at2pm();
+    
+    at8pm();
+    
   }
 
+  bS1 = digitalRead(buttonPin1);
+  
+  bS2 = digitalRead(buttonPin2);
+  
+  bS3 = digitalRead(buttonPin3);
+  
+  bS4 = digitalRead(buttonPin4);
   
 
-  currentMillisLCD = millis();                        &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   // start millis for LCD screen switching at defined interval of time
-
-  push1state = digitalRead(push1pin);                 &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   // start reading all push button pins
-
-  push2state = digitalRead(push2pin);
-
-  push3state = digitalRead(push3pin);
-
-  stopinState = digitalRead(stopPin);
-
+  if (bS2 != lBS2) {
   
+    if (bS2 == HIGH) {
+    
+      Serial.println("Button 2 Pressed");
+      
+      pushVal = 1;
+      
+      delay(1000);
+      
+    }
+  }
+  
+  lBS2 = bS2;
 
-  stopPins();                                          &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;    // call to stop buzzing
+  if (bS3 != lBS3) {
+  
+    if (bS3 == HIGH) {
+    
+      Serial.println("Button 3 Pressed");
+      
+      pushVal = 2;
+      
+      delay(1000);
+    }
+    
+  }
+  
+  lBS3 = bS3;
 
-  changeScreen();                                  &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;        // screen cycle function
+  if (bS4 != lBS4) {
+  
+    if (bS4 == HIGH) {
+    
+      Serial.println("Button 4 Pressed");
+      
+      pushVal = 3;
+      
+      delay(1000);
+      
+    }
+  }
+  
+  lBS4 = bS4;
 
+  if (bS1 != lBS1) {
+  
+    if (bS1 == HIGH) {
+    
+      val3 = pushVal;
+      
+      pushVal = 0;
+      
+      digitalWrite(buzz, LOW);
+      
+      pinstop();
+      
+      pushVal = val3;
+      
+    }
+  }
+  lBS1 = bS1;
 
-
+  timeScreen();
+  
+  ValSet();
 }
 
+void push1() {
 
-// push buttons
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Reminder set ");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("for Once/day !");
+  
+  delay(1200);
+  
+  lcd.clear();
+}
 
-void push1() {                   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;  // function to set reminder once/day 
+void push2() {
 
-  if (push1state == 1) {
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Reminder set ");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("for Twice/day !");
+  
+  delay(1200);
+  
+  lcd.clear();
+}
 
-    push1state = 0;
+void push3() {
 
-    push2state = 0;
+  lcd.clear();
 
-    push3state = 0;
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Reminder set ");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("for Thrice/day !");
+  
+  delay(1200);
+  
+  lcd.clear();
+}
 
-//    pushPressed = true;
+void pinstop() {
 
-    EEPROM.write(addr, 1);
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  
+  lcd.print("Take Medicine  ");
+  
+  lcd.setCursor(0, 1);
+  
+  lcd.print("with Warm Water");
+  
+  delay(5000);
+  
+  lcd.clear();
+}
 
-    Serial.print("Push1 Written : "); Serial.println(EEPROM.read(addr)); 
+void at8am() {
 
-    pushVal = 1;                                             
-
+  DateTime t = rtc.now();
+  
+  if (int(t.hour()) == buzz8amHH && int(t.minute()) == buzz8amMM && (int(t.second()) == buzz8amSS || int(t.second()) < buzz8amSS + 10)) {
+  
+    digitalWrite(buzz, HIGH);
+    
     lcd.clear();
-
+    
     lcd.setCursor(0, 0);
-
-    lcd.print("Reminder set ");
-
+    
+    lcd.print("Time to take ");
+    
     lcd.setCursor(0, 1);
-
-    lcd.print("for Once/day !");
-
-    delay(1200);
-
-    lcd.clear();
-
+    
+    lcd.print("Morning medicines.");
+    
+    delay(5000);
+    
   }
-
 }
 
+void at2pm() {
 
-void push2() {                     &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   //function to set reminder twice/day
-
-  if (push2state == 1) {
-
-    push2state = 0;
-
-    push1state = 0;
-
-    push3state = 0;
-
-//    pushPressed = true;
-
-    EEPROM.write(addr, 2);
-
-    Serial.print("Push2 Written : "); Serial.println(EEPROM.read(addr));
-
-    pushVal = 2;
-
+  DateTime t = rtc.now();
+  
+  if (int(t.hour()) == buzz2pmHH && int(t.minute()) == buzz2pmMM && (int(t.second()) == buzz2pmSS || int(t.second()) < buzz2pmSS + 10)) {
+  
+    digitalWrite(buzz, HIGH);
+    
     lcd.clear();
-
+    
     lcd.setCursor(0, 0);
-
-    lcd.print("Reminder set ");
-
+    
+    lcd.print("Time to take ");
+    
     lcd.setCursor(0, 1);
-
-    lcd.print("for Twice/day !");
-
-    delay(1200);
-
-    lcd.clear();
-
+    
+    lcd.print("Afternoon medicines.");
+    
+    delay(5000);
+    
   }
-
 }
 
+void at8pm() {
 
-void push3() {              &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;        //function to set reminder thrice/day
-
-  if (push3state == 1) {
-
-    push3state = 0;
-
-    push1state = 0;
-
-    push2state = 0;
-
-//    pushPressed = true;
-
-    EEPROM.write(addr, 3);
-
-    Serial.print("Push3 Written : "); Serial.println(EEPROM.read(addr));
-
-    pushVal = 3;
-
+  DateTime t = rtc.now();
+  
+  if (int(t.hour()) == buzz8pmHH && int(t.minute()) == buzz8pmMM && (int(t.second()) == buzz8pmSS || int(t.second()) < buzz8pmSS + 10)) {
+  
+    digitalWrite(buzz, HIGH);
+    
     lcd.clear();
-
+    
     lcd.setCursor(0, 0);
-
-    lcd.print("Reminder set ");
-
+    
+    lcd.print("Time to take ");
+    
     lcd.setCursor(0, 1);
-
-    lcd.print("for Thrice/day !");
-
-    delay(1200);
-
-    lcd.clear();
-
+    
+    lcd.print("Night medicines.");
+    
+    delay(5000);
+    
   }
-
-}
-
-
-void stopPins() {             &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;        //function to stop buzzing when user pushes stop push button
-
-  if (stopinState == 1) {
-
-//    stopinState = 0;
-
-//    pushPressed = true;
-
-    pushpressed = 1;
-
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-
-    lcd.print("Take Medicine  ");
-
-    lcd.setCursor(0, 1);
-
-    lcd.print("with Warm Water");
-
-    delay(1200);
-
-    lcd.clear();
-
-  }
-
+  
 }
 
 
 
-void startBuzz() {                &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;      // function to start buzzing when time reaches to defined interval
-
-
-//  if (pushPressed == false) {
-
- if (pushpressed == 0) {
-
-    Serial.println("pushpressed is false in blink");
-
-    unsigned long currentMillis = millis();
-
-    if (currentMillis - previousMillis >= interval) {
-
-      previousMillis = currentMillis;      
-
-      Serial.println("Start Buzzing");
-
-      if (ledState == LOW) {                 
-        ledState = HIGH;
-
-      }  else {
-
-        ledState = LOW;
-
-      }
-
-      digitalWrite(ledPin, ledState);
-
-    }
-
-  }
-
-  else if (pushpressed == 1) {
-
-    Serial.println("pushpressed is true");
-
-    ledState = LOW;
-
-    digitalWrite(ledPin, ledState);
-
-  }
-
-}
-
-
-void at8am() {                   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     // function to start buzzing at 8am
-
-  DateTime now = rtc.now();
-
-  if (int(now.hour()) >= buzz8amHH) {
-
-    if (int(now.minute()) >= buzz8amMM) {
-
-      if (int(now.second()) > buzz8amSS) {
-
-        /////////////////////////////////////////////////////
-
-
-        startBuzz();
-
-        /////////////////////////////////////////////////////
-
-      }
-
-    }
-
-  }
-
-}
-
-
-void at2pm() {                       &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;     // function to start buzzing at 2pm
-
-  DateTime now = rtc.now();
-
-  if (int(now.hour()) >= buzz2pmHH) {
-
-    if (int(now.minute()) >= buzz2pmMM) {
-
-      if (int(now.second()) > buzz2pmSS) {
-
-       
-
-        ///////////////////////////////////////////////////
-
-        startBuzz();
-
-        //////////////////////////////////////////////////
-
-      }
-
-    }
-
-  }
-
-}
-
-
-void at8pm() {                      &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;       // function to start buzzing at 8pm
-
-  DateTime now = rtc.now();
-
-  if (int(now.hour()) >= buzz8pmHH) {
-
-    if (int(now.minute()) >= buzz8pmMM) {
-
-      if (int(now.second()) > buzz8pmSS) {
-
-        
-
-        /////////////////////////////////////////////////////
-
-        startBuzz();
-
-        /////////////////////////////////////////////////////
-
-      }
-
-    }
-
-  }
-
-}
-
-
-//Screen Cycling
-
-void changeScreen() {                 //function for Screen Cycling
-
-  // Start switching screen every defined intervalLCD
-
-  if (currentMillisLCD - previousMillisLCD > intervalLCD)            &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   // save the last time you changed the display
-
-  {
-
-    previousMillisLCD = currentMillisLCD;
-
-    screens++;
-
-    if (screens > maxScreen) {
-
-      screens = 0;  // all screens over -> start from 1st
-
-    }
-
-    isScreenChanged = true;
-
-  }
-
-
-  // Start displaying current screen
-
-  if (isScreenChanged)     &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;   &nbsp;// only update the screen if the screen is changed.
-
-  {
-
-    isScreenChanged = false; 
-
-    switch (screens)
-
-    {
-
-      case getWellsoon:
-
-        gwsMessege();             
-
-        break;
-
-      case HELP_SCREEN:              
-
-        helpScreen();               
-
-        break;
-
-      case TIME_SCREEN:
-
-        timeScreen();                 
-
-        break;
-
-      default:
-
-        //NOT SET.
- break;
-}
-        
-  }
-
-}
-
-
-## Error-Free Compilation Output:
+## Arduino uno Error-Free Compilation Output:
 
 ![123](https://github.com/Advith147/MediEase-Simplifying-Health-Management/assets/109427643/e18e369e-31a0-4645-827f-0de8c5359440)
 
 ## RISCDUINO UNO Compilation Output:
 
+![65](https://github.com/Advith147/MediEase-Simplifying-Health-Management/assets/109427643/b5e5e9e0-e657-4f48-a693-50f8a17411d3)
 
 ## BOM Cost:
 
 | **Component name** | **Quantity Required** | **Unit price** | **Total Price**** (Unit price\*Quantity)** |
 | --- | --- | --- | --- |
 | DS3231 RTC Module Precise Real Time Clock I2C AT24C32 | 1 | 209 | 209 |
-| --- | --- | --- | --- |
 | Electronic Spices 16 x 4 Yellow/Green color LCD display module | 1 | 479 | 479 |
 | Led | 4 | 20 | 80 |
+| AT24C256 I2C Interface EEPROM Memory Module | 1 | 100 | 100 |
 | Jumper Wires| 10 | 10 | 100 |
 | 10K Potentiometer | 2 | 50 | 100 |
 | Push Buttons | 1 | 50 | 50 |
